@@ -1,0 +1,101 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+form {
+    margin-bottom: 20px;
+}
+
+label, select, input, button {
+    display: block;
+    margin-bottom: 10px;
+}
+
+.container {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    /* padding-bottom: 90.91%; */
+    /* height: 0; */
+    /* position: relative */
+    /* justify-content: space-between; */
+}
+
+
+
+.svg-container {
+    width: calc(50% - 10px); 
+    height: 0;
+    padding-bottom: 90.91%; 
+    position: relative;
+    margin-right: 0; 
+}
+
+.svg-container h2 {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+#d3-svg {
+    margin: 0;
+    padding: 0;
+}
+
+.plotly-container {
+    width: calc(50% - 10px); 
+    height: 0;
+    padding-bottom: 90.91%; 
+    position: relative;
+    margin-right: 10px; 
+}
+
+
+
+.form-container {
+    display: flex;
+    gap: 10px; /* Espaçamento entre os formulários */
+}
+
+.form-with-text {
+    display: flex;
+    align-items: center;
+    gap: 5px; /* Espaçamento entre o campo de texto e o botão */
+}
+
+
+
+
+#dataset-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: bottom;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-bottom: 5px;
+}
+
+.eta-input {
+    width: 160px;
+    
+}
+
+.buttons {
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+}
+
+@media (max-width: 600px) {
+    #dataset-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

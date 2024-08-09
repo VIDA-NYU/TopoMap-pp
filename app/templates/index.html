@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TopoMap++ Visualization</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    
+
+<link rel="stylesheet" href="../static/styles.css">
+</head>
+<body>
+    <!-- <h2>Dataset options</h2> -->
+    
+    <form id="dataset-form">
+        <div class="form-group">
+            <label for="dataset">Dataset</label>
+            <select id="dataset" name="dataset" onchange="fetchColumns()">
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="column-select">Column for Coloring:</label>
+            <select id="column-select">
+                
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="eta">Simplification Threshold</label>
+            <input type="number" id="eta" class="eta-input">
+        </div>
+        
+        <div class="form-group">
+            <label for="eta">&nbsp</label>
+            <button type="submit">Update</button>
+        </div>
+    </form>
+    
+
+    
+    <div class="container">
+        <!-- <h2>Plotly Graph</h2>   -->
+        <div id = "plotly-div" class="plotly-container">
+                         
+        </div>
+        <div class="svg-container">
+            <!-- <h2>Treemap</h2> -->
+            <div id="d3-svg"></div>
+        </div>
+        
+    </div>
+
+
+</body>
+<script src="{{ url_for('static', filename='d3_script.js') }}"></script>
+</html>
