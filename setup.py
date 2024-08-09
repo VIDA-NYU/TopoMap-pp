@@ -3,7 +3,7 @@ from pathlib import Path
 
 setup(
     name="topomap",
-    version="0.0.1",
+    version="0.0.3",
     packages=find_packages(),
     install_requires=[
         "matplotlib>=3.8.2",
