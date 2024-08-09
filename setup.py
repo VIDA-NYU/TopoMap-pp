@@ -27,7 +27,7 @@ setup(
         "High-dimensional data", 
         "Projection"
     ],
-    url="https://github.com/viguardieiro/TopoMap",
+    url="https://github.com/VIDA-NYU/TopoMap-pp",
     classifiers=[
         "License :: OSI Approved :: BSD License",
         "Programming Language :: Python :: 3",
