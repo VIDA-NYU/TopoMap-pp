@@ -31,7 +31,8 @@ setup(
     ],
     url="https://github.com/viguardieiro/TopoMap",
     classifiers=[
-        "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: BSD License",
         "Programming Language :: Python :: 3",
+        "Operating System :: OS Independent",
     ],
 )
