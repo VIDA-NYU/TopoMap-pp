@@ -15,6 +15,7 @@ from topomap  import TopoTree
 from topomap import HierarchicalTopoMap
 from topomap import TopoMap
 from topomap.utils import  get_hull,build_mst_ann
+from pathlib import Path
 
 
 
@@ -23,11 +24,11 @@ def plot_projections_discrete_feature(projections,
                                     column_color,
                                     column_values=[],
                                     colors=[],
-                                    hiertopomap=None,
+                                    hiertopomap_points=None,
+                                    components_to_scale = [],
                                     legend_title='',
                                     low_opacity=False,
-                                    show_hulls=True,
-                                    topomap=False
+                                    show_hulls=True
                                     ):
     if len(column_values) == 0:
         column_values = list(df_data[column_color].unique())
@@ -39,23 +40,14 @@ def plot_projections_discrete_feature(projections,
     fig = go.Figure()
 
     if show_hulls:
-        for c in hiertopomap.components_to_scale:
-            comp_ids = hiertopomap.components_info[c]['points']
+        for c in components_to_scale:
+            comp_ids = hiertopomap_points[c]
 
-            if topomap:
-                hull = hiertopomap.components_info[c]['hull']
-                points = projections[comp_ids]
-                hull = get_hull(points)
-                points_hull = [points[i] for i in hull.vertices]
-                points_hull.append(points_hull[0])
-                xs, ys = zip(*points_hull)
-
-            else:
-                hull = hiertopomap.components_info[c]['hull']
-                points_ids = [comp_ids[i] for i in hull.vertices]
-                points = list(hiertopomap.projections[points_ids,:])
-                points.append(points[0])
-                xs, ys = zip(*points)
+            hull = get_hull(projections[comp_ids,:])
+            points_ids = [comp_ids[i] for i in hull.vertices]
+            points = list(projections[points_ids,:])
+            points.append(points[0])
+            xs, ys = zip(*points)
 
             fig.add_trace(go.Scatter(x=xs, y=ys,
                             fill='toself', 
@@ -109,39 +101,44 @@ def plot_projections_discrete_feature(projections,
 
 app = Flask(__name__)
 cur_plot = 0
-data_folder = '../data/numpy_datasets/'
-target_folder = '../data/targets/'
-hierarquical_folder = '../data/hierarquical_saved/'
-proj_folder = '../data/proj_saved/'
-mst_folder = '../data/msts_app/'
-ordered_edges_folder = '../data/ordered_edges_app/'
+data_folder = 'data_app/numpy_datasets_app/'
+#Features that can be used to color the projection. Currently we only accept categorial features 
+feature_folder = 'data_app/features_app/'
+hierarquical_folder = 'data_app/hierarquical_saved_app/'
+proj_folder = 'data_app/proj_saved_app/'
+mst_folder = 'data_app/msts_app/'
+ordered_edges_folder = 'data_app/ordered_edges_app/'
+df_comp_folder = 'data_app/saved_dfcomp_app/'
+
+Path(feature_folder).mkdir(parents=True, exist_ok=True)
+Path(hierarquical_folder).mkdir(parents=True, exist_ok=True)
+Path(proj_folder).mkdir(parents=True, exist_ok=True)
+Path(mst_folder).mkdir(parents=True, exist_ok=True)
+Path(ordered_edges_folder).mkdir(parents=True, exist_ok=True)
+Path(df_comp_folder).mkdir(parents=True, exist_ok=True)
+
+
+
 datasets = {
     "LLM":"llm_embs.npy",
     "Iris":"Iris.npy"
     
 }
 
-targets = {
-    "Iris":"target_Iris.pickle",
-    "LLM":"llm_df_questions.pickle"
+#Path to features of each possible dataset
+features = {
+    "Iris":"target_Iris.csv",
+    "LLM":"llm_df_questions.csv"
 }
 
+#List of possible categorical columns to use to color the projection.
 available_columns = { 
     "Iris":["class"],
     "LLM":["model_choice", 'Level', 'correct','correct_answer']
 }
-msts = {
-    "Iris": "mst_Iris.npy",
-    "LLM": "mst_LLM.npy"
-}
 
 
 
-df_comp_folder = '../data/saved_dfcomp/'
-cur_hierarquical = 0 
-cur_proj_hieraquical = 0 
-cur_X = 0
- 
 
 def plot_topomap(projections,
                  df_data,
@@ -300,23 +297,20 @@ class NpEncoder(json.JSONEncoder):
 
 
 def check_dfcomp(dataset,eta):
-    df_comp_path = f'{df_comp_folder}{dataset}_{eta}.pickle'
+    df_comp_path = f'{df_comp_folder}{dataset}_{eta}.parquet'
     return os.path.isfile(df_comp_path)
 
 def get_df_comp(dataset,eta,X):
     if(check_dfcomp(dataset,eta)):
-        with open(f'{df_comp_folder}{dataset}_{eta}.pickle', 'rb') as f:
-            df_comp = pickle.load(f)
+        df_comp = pd.read_parquet(f'{df_comp_folder}{dataset}_{eta}.parquet')
     else:
         topotree = TopoTree(min_box_size=eta)
         topotree.mst = get_mst(dataset, X)
         topotree.sorted_edges = get_ordered_edges(dataset,X)
         comp_info = topotree.fit(X)
         df_comp = pd.DataFrame.from_dict(comp_info)
-        with open(f'{df_comp_folder}{dataset}_{eta}.pickle', 'wb') as f:
-            pickle.dump(df_comp, f)
-            print(f'saved on  {df_comp_folder}{dataset}_{eta}.pickle')
-
+        df_comp.to_parquet(f'{df_comp_folder}{dataset}_{eta}.parquet', index = False)
+        
     return df_comp
 
 
@@ -378,7 +372,7 @@ def plotly_plot():
     dataset_name = data.get('dataset_name', [])
     column_to_color = data.get('column_to_color','')
     X_path = data_folder + datasets[dataset_name]
-    y_path = target_folder + targets[dataset_name]
+    y_path = feature_folder + features[dataset_name]
     eta = data.get('eta', '')
     if(eta ==''):
         eta = 0
@@ -387,8 +381,7 @@ def plotly_plot():
     with open(X_path, 'rb') as f:
         X = np.load(f)
     
-    with open(y_path, 'rb') as f:
-        y = pickle.load(f)
+    y = pd.read_csv(y_path)
     X=X.astype(np.float32)
     
     df_comp = get_df_comp(dataset_name,eta,X)
@@ -403,12 +396,12 @@ def plotly_plot():
     if(len(components_to_scale)!=0):
         sorted_components = "_".join(map(str, sorted(components_to_scale)))
         proj_path = f'{proj_folder}Hierarchical_proj_{dataset_name}_eta_{eta}_components_{sorted_components}.npy'
-        hier_path = f'{hierarquical_folder}Hierarchical_{dataset_name}_eta_{eta}_components_{sorted_components}.pickle'
+        hier_path = f'{hierarquical_folder}Hierarchical_{dataset_name}_eta_{eta}_components_{sorted_components}.parquet'
         if(os.path.isfile(proj_path)):
             with open(proj_path,'rb') as f:
                 proj_hier = np.load(f,allow_pickle=True)
-            with open(hier_path,'rb') as f:
-                hiertopomap = pickle.load(f)
+            
+            hiertopomap_points = pd.read_parquet(hier_path)["points"].to_list()
             
         else:
             hiertopomap = HierarchicalTopoMap()
@@ -421,12 +414,12 @@ def plotly_plot():
             proj_hier = hiertopomap.fit_transform(X)
             with open(proj_path, 'wb') as f: 
                 np.save(f,proj_hier,allow_pickle = True)
-            with open(hier_path, 'wb') as f: 
-                pickle.dump(hiertopomap,f)
-            global cur_hierarquical
-            cur_hierarquical = hiertopomap
-            global cur_proj_hieraquical
-            cur_proj_hieraquical = proj_hier
+            
+            df = pd.DataFrame(hiertopomap.components_info, columns=['points'])
+
+            df.to_parquet(hier_path, index = False)
+            hiertopomap_points = df["points"].to_list()
+            
 
         
         fig = plot_projections_discrete_feature(proj_hier,
@@ -435,7 +428,9 @@ def plotly_plot():
                                             column_values=column_values,
                                             legend_title=f"{dataset_name} {column_to_color}",
                                             low_opacity=True,
-                                            hiertopomap=hiertopomap)
+                                            hiertopomap_points=hiertopomap_points,
+                                            components_to_scale= components_to_scale)
+    
         
         fig.update_layout(autosize= True, title = "Topomap++ projection")
     
@@ -487,58 +482,6 @@ def get_leaves():
     
     return jsonify({'ok': True, 
         'msg':'Success',"components":components} )
-
-@app.route('/update-convex-hulls', methods=['POST'])
-def update_convex_hull():
-    data = request.get_json()
-    
-    selected_names = data.get('global_selecteds', [])
-    selected_names = [int(s) for s in selected_names]
-    global cur_plot
-    trace_to_remove = []
-    for i, trace in enumerate(cur_plot.data):
-        if 'Component' in trace.name:
-            trace_to_remove.append(i)
-            
-
-    if len(trace_to_remove) !=0:
-        cur_plot.data = tuple(trace for j, trace in enumerate(cur_plot.data) if j not in  trace_to_remove)
-    
-
-    for c in selected_names:
-            comp_ids = cur_hierarquical.components_info[c]['points']
-
-
-            c_points_id = cur_hierarquical.components_info[c]['points']
-            hull = get_hull(cur_hierarquical.projections[list(c_points_id),:])
-            points_ids = [comp_ids[i] for i in hull.vertices]
-            points = list(cur_hierarquical.projections[points_ids,:])
-            points.append(points[0])
-            xs, ys = zip(*points)
-
-            cur_plot.add_trace(go.Scatter(x=xs, y=ys,
-                            fill='toself', 
-                            fillcolor = '#CCCCCC',
-                            line_color='#808080',
-                            opacity=0.5,
-                            line_width=1,
-                            text=f'Component {c}',
-                            name='Components', legendgroup='Components',
-                            showlegend=False,
-                            marker=dict(size=1)
-                            )
-                        )
-
-    component_traces = [trace for trace in cur_plot.data if "Components" in trace.name]
-
-    other_traces = [trace for trace in cur_plot.data if "Components" not in trace.name]
-
-    cur_plot.data = component_traces+ other_traces 
-    graph_json = cur_plot.to_json()
-
-    return jsonify(graph_json)
-
-
 
 
 @app.route('/get-dataset', methods=['POST'])
